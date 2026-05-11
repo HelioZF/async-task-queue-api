@@ -1,0 +1,35 @@
+.git
+.gitignore
+.env
+.env.*
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+htmlcov
+.coverage
+.mypy_cache
+.ruff_cache
+
+# Legacy reference code
+base/
+
+# Planning docs (not needed in image)
+planner/
+docs/
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Other
+*.md
+!README.md
+Makefile
+LICENSE
