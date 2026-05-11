@@ -1,0 +1,17 @@
+[project]
+name = "task-queue-client"
+version = "0.1.0"
+description = "Multi-threaded Python client for the Async Task Queue API with Future-based async support."
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Helio Zaia Franciscon", email = "heliozf99@gmail.com"},
+]
+
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
