@@ -1,0 +1,100 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: taskqueue_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskqueue_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - TASKQUEUE_REDIS_URL=redis://redis:6379/0
+      - TASKQUEUE_REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - TASKQUEUE_REDIS_JOB_STORE_URL=redis://redis:6379/2
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+  worker_high:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskqueue_worker_high
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - TASKQUEUE_REDIS_URL=redis://redis:6379/0
+      - TASKQUEUE_REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - TASKQUEUE_REDIS_JOB_STORE_URL=redis://redis:6379/2
+    command: >
+      celery -A src.infrastructure.celery_app worker
+      --queues=jobs_high
+      --concurrency=4
+      --loglevel=info
+      --max-tasks-per-child=100
+      --hostname=worker_high@%h
+    restart: unless-stopped
+
+  worker_low:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskqueue_worker_low
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - TASKQUEUE_REDIS_URL=redis://redis:6379/0
+      - TASKQUEUE_REDIS_RESULT_BACKEND=redis://redis:6379/1
+      - TASKQUEUE_REDIS_JOB_STORE_URL=redis://redis:6379/2
+    command: >
+      celery -A src.infrastructure.celery_app worker
+      --queues=jobs_low
+      --concurrency=2
+      --loglevel=info
+      --max-tasks-per-child=100
+      --hostname=worker_low@%h
+    restart: unless-stopped
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskqueue_flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - TASKQUEUE_REDIS_URL=redis://redis:6379/0
+    command: celery -A src.infrastructure.celery_app flower --port=5555
+    restart: unless-stopped
+
+volumes:
+  redis_data:
