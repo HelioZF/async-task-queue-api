@@ -4,7 +4,7 @@
 > for cross-session continuity, progress tracking, and portfolio documentation.
 >
 > **Last updated:** 2026-05-11
-> **Current stage:** Pre-implementation (Planning Complete)
+> **Current stage:** Stage 0 Complete — Ready for Stage 1 (Planner)
 
 ---
 
@@ -100,7 +100,7 @@ Stage 0: Code Analyst ──→ Stage 1: Planner ──┬──→ Stage 2: Bac
 
 | Stage | Agent | Status | Started | Completed | Commits |
 |-------|-------|--------|---------|-----------|---------|
-| 0 | Code Analyst | Pending | - | - | - |
+| 0 | Code Analyst | **Complete** | 2026-05-11 | 2026-05-11 | `c73ff38`, `693c789` |
 | 1 | Planner | Pending | - | - | - |
 | 2 | Backend (Core) | Pending | - | - | - |
 | 3 | Backend (Client) | Pending | - | - | - |
@@ -283,7 +283,7 @@ Each stage branch gets a PR into `develop` with:
 - Conventional Commits for professional git history
 - Three version tags: v0.1.0 (infra), v0.2.0 (tested), v1.0.0 (portfolio-ready)
 
-**Next session:** Begin Stage 0 (Code Analyst) — analyze legacy patterns
+**Next session:** Begin Stage 1 (Planner) — define domain layer
 
 ---
 
@@ -291,6 +291,50 @@ Each stage branch gets a PR into `develop` with:
 
 > Each stage execution gets logged below with: date, agent, prompt sent, agent feedback,
 > files created/modified, issues encountered, and commits made.
+
+### Stage 0 — Code Analyst | 2026-05-11
+
+**Session:** 1
+**Branch:** `stage/0-analysis`
+**Status:** Complete
+
+#### Prompt Sent
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage 0 seed prompt.
+
+#### Agent Feedback
+Analyzed all 47 legacy files in `base/api_ccee/`. Extracted 13 reusable patterns (expanded from planned 11 — added exception hierarchy and app factory patterns that were valuable). Produced complete file-by-file mapping with action classifications.
+
+Key findings:
+- **Rate limiter is 100% reusable** — only pattern that needs zero structural changes
+- **Client library has 6 critical gaps**: no threading, no backoff, no Futures, shared session, no context manager, no shutdown
+- **30 of 47 files are discardable** — SOAP/httpx domain-specific code
+- **Security flags**: identified credential fields and SSL paths in `config.py` that must NOT carry over
+
+#### Files Created
+- `docs/analysis/legacy-patterns.md` — 13 patterns with code snippets, design decisions, adaptation notes, and target files
+- `docs/analysis/legacy-mapping.md` — 47-file mapping table with action/target/notes + queue/rate-limit/env mappings + security flags
+
+#### Issues Encountered
+- None
+
+#### Acceptance Criteria Results
+- [x] All 11+ pattern areas documented (13 patterns extracted)
+- [x] Every legacy file in `base/api_ccee/` mapped (47 files)
+- [x] No CCEE/Lux references in output documents
+- [x] Client library gap analysis identifies sync-only limitation and 6 threading requirements
+
+#### Commits Made
+```
+c73ff38 docs(analysis): add legacy pattern extraction report
+693c789 docs(analysis): add legacy-to-new file mapping
+```
+
+#### Notes for Next Session
+- Rate limiter can be adapted almost verbatim — highest ROI pattern
+- Client library is the biggest delta from legacy — needs dedicated focus in Stage 3
+- Remember to merge `stage/0-analysis` into `develop` via PR before starting Stage 1
+
+---
 
 ### [Template — Copy for each stage entry]
 
@@ -302,29 +346,23 @@ Each stage branch gets a PR into `develop` with:
 **Status:** In Progress / Complete / Blocked
 
 #### Prompt Sent
-```
-[The seed prompt given to the agent — reference AGENT_PIPELINE_PLAN.md section]
-```
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage X seed prompt.
 
 #### Agent Feedback
 [Summary of what the agent produced, any questions it asked, deviations from plan]
 
 #### Files Created/Modified
-- `path/to/file.py` — Description of what was created
-- `path/to/file.py` — Description of changes
+- `path/to/file.py` — Description
 
 #### Issues Encountered
-- [Issue description and how it was resolved]
 - None
 
 #### Acceptance Criteria Results
 - [ ] Criteria 1 — Pass/Fail
-- [ ] Criteria 2 — Pass/Fail
 
 #### Commits Made
 ```
-abc1234 feat(scope): description
-def5678 feat(scope): description
+abc1234 type(scope): description
 ```
 
 #### Notes for Next Session
