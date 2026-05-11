@@ -4,7 +4,7 @@
 > for cross-session continuity, progress tracking, and portfolio documentation.
 >
 > **Last updated:** 2026-05-11
-> **Current stage:** Stage 2 Complete — Ready for Stage 3 (Client Library) + Stage 4 (Deploy)
+> **Current stage:** Stage 3 Complete — Ready for Stage 4 (Deploy)
 
 ---
 
@@ -103,7 +103,7 @@ Stage 0: Code Analyst ──→ Stage 1: Planner ──┬──→ Stage 2: Bac
 | 0 | Code Analyst | **Complete** | 2026-05-11 | 2026-05-11 | `c73ff38`, `693c789` |
 | 1 | Planner | **Complete** | 2026-05-11 | 2026-05-11 | `2ec2cd8`..`d423c17` |
 | 2 | Backend (Core) | **Complete** | 2026-05-11 | 2026-05-11 | `bf66efc`..`eadf250` |
-| 3 | Backend (Client) | Pending | - | - | - |
+| 3 | Backend (Client) | **Complete** | 2026-05-11 | 2026-05-11 | `0ce62c1`..`63508e6` |
 | 4 | Deploy | Pending | - | - | - |
 | 5 | QA (Tests) | Pending | - | - | - |
 | 6 | Backend (Demos) | Pending | - | - | - |
@@ -460,6 +460,60 @@ eadf250 chore: add pyproject.toml with project dependencies
 - Stage 3 (Client Library) and Stage 4 (Deploy) can proceed next
 - Client library is standalone — no imports from src/
 - Deploy needs pyproject.toml and src/main.py for Dockerfile
+
+---
+
+### Stage 3 — Backend (Client Library) ⭐ | 2026-05-11
+
+**Session:** 1
+**Branch:** `stage/3-client-library`
+**Status:** Complete
+
+#### Prompt Sent
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage 3 seed prompt.
+
+#### Agent Feedback
+Built the complete multi-threaded client library as a standalone package. All code validated: no imports from `src/`, models work, exceptions work, client instantiates and shuts down, context manager works. AST analysis confirmed zero `src` imports across all client files.
+
+Key implementation details:
+- `_JobPoller` creates its own `requests.Session` per instance (thread-safe)
+- `submit_async()` submits job on main thread (POST), returns Future with polling in background
+- `submit_batch()` iterates submissions then submits pollers to executor
+- Exponential backoff: 0.5 → 1.0 → 2.0 → 4.0 → 5.0 (capped via `min()`)
+- `shutdown()` calls `executor.shutdown()` + `session.close()`
+
+#### Files Created
+- `client/exceptions.py` — ClientError, JobTimeoutError, JobFailedError, ApiConnectionError
+- `client/models.py` — JobResult, BatchResult (plain dataclasses)
+- `client/poller.py` — _JobPoller with exponential backoff
+- `client/client.py` — TaskQueueClient (sync + async + batch APIs)
+- `client/__init__.py` — Public API exports
+- `client/pyproject.toml` — Standalone package, only dep: requests
+
+#### Issues Encountered
+- None
+
+#### Acceptance Criteria Results
+- [x] client/ is standalone with only requests as dependency
+- [x] submit_async() returns Future[JobResult] without blocking
+- [x] submit_batch() returns N Futures for N jobs
+- [x] Exponential backoff: 0.5 → 1.0 → 2.0 → 4.0 → 5.0 (capped)
+- [x] JobTimeoutError raised after timeout seconds
+- [x] shutdown() terminates ThreadPoolExecutor
+- [x] Context manager works
+- [x] No imports from src/ (verified with AST analysis)
+
+#### Commits Made
+```
+0ce62c1 feat(client): add client models (JobResult, BatchResult) and exceptions
+da6579d feat(client): add job poller with exponential backoff
+75bd0be feat(client): add TaskQueueClient with sync, async, and batch APIs
+63508e6 feat(client): add package init and standalone pyproject.toml
+```
+
+#### Notes for Next Session
+- Stage 4 (Deploy) can now proceed — Docker infrastructure
+- Stages 5 (Tests) and 6 (Demos) depend on Stages 2, 3, and 4
 
 ---
 
