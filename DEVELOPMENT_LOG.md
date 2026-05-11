@@ -4,7 +4,7 @@
 > for cross-session continuity, progress tracking, and portfolio documentation.
 >
 > **Last updated:** 2026-05-11
-> **Current stage:** Stage 0 Complete — Ready for Stage 1 (Planner)
+> **Current stage:** Stage 1 Complete — Ready for Stages 2+3 (Backend Core + Client)
 
 ---
 
@@ -101,7 +101,7 @@ Stage 0: Code Analyst ──→ Stage 1: Planner ──┬──→ Stage 2: Bac
 | Stage | Agent | Status | Started | Completed | Commits |
 |-------|-------|--------|---------|-----------|---------|
 | 0 | Code Analyst | **Complete** | 2026-05-11 | 2026-05-11 | `c73ff38`, `693c789` |
-| 1 | Planner | Pending | - | - | - |
+| 1 | Planner | **Complete** | 2026-05-11 | 2026-05-11 | `2ec2cd8`..`d423c17` |
 | 2 | Backend (Core) | Pending | - | - | - |
 | 3 | Backend (Client) | Pending | - | - | - |
 | 4 | Deploy | Pending | - | - | - |
@@ -333,6 +333,62 @@ c73ff38 docs(analysis): add legacy pattern extraction report
 - Rate limiter can be adapted almost verbatim — highest ROI pattern
 - Client library is the biggest delta from legacy — needs dedicated focus in Stage 3
 - Remember to merge `stage/0-analysis` into `develop` via PR before starting Stage 1
+
+---
+
+### Stage 1 — Planner | 2026-05-11
+
+**Session:** 1
+**Branch:** `stage/1-domain`
+**Status:** Complete
+
+#### Prompt Sent
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage 1 seed prompt.
+
+#### Agent Feedback
+Created the complete domain foundation: entity, value objects, ports, exceptions, DTOs, and planning docs. All code validated with Python interpreter — imports resolve, dataclass instantiation works, Pydantic models serialize correctly, ABCs enforce abstract methods.
+
+Deviations from plan:
+- Added lifecycle methods to Job entity (`mark_processing`, `mark_success`, etc.) — not in seed prompt but natural for domain behavior
+- Added `is_terminal` and `is_cancellable` properties for state checks
+- Added `retry_count` field to `JobStatusResponse` DTO for visibility
+
+#### Files Created
+- `src/domain/value_objects/enums.py` — JobStatus (5), JobPriority (2), JobType (4) enums
+- `src/domain/entities/job.py` — Job dataclass with lifecycle methods
+- `src/domain/ports/file_processor.py` — IFileProcessor ABC
+- `src/domain/ports/job_store.py` — IJobStore ABC
+- `src/domain/exceptions.py` — 6-class exception hierarchy
+- `src/application/dtos/job_dtos.py` — 6 Pydantic v2 models
+- `docs/planning/domain-model.md` — Mermaid class diagram + state machine
+- `docs/planning/api-contract.md` — All 6 endpoints with examples
+- `__init__.py` files for all packages
+
+#### Issues Encountered
+- None
+
+#### Acceptance Criteria Results
+- [x] All source files valid Python (verified with interpreter)
+- [x] Job is a @dataclass, not Pydantic
+- [x] IFileProcessor and IJobStore are ABCs with @abstractmethod
+- [x] DTOs use Pydantic v2 BaseModel with field validation
+- [x] No implementation code (no use cases, no adapters)
+- [x] docs/planning/ contains both documents with Mermaid diagrams
+- [x] Enums: 5 statuses, 2 priorities, 4 job types
+
+#### Commits Made
+```
+2ec2cd8 feat(domain): add Job entity and value objects (enums)
+71383c0 feat(domain): add port interfaces (IFileProcessor, IJobStore)
+26b4663 feat(domain): add domain exception hierarchy
+2a9c17a feat(domain): add application DTOs (Pydantic v2 models)
+d423c17 docs(planning): add domain model diagram and API contract
+```
+
+#### Notes for Next Session
+- Stages 2 and 3 can run in parallel (Backend Core + Client Library)
+- Backend Agent must NOT modify any files in src/domain/ or src/application/dtos/
+- Job entity has lifecycle methods — use cases should call these instead of setting fields directly
 
 ---
 
