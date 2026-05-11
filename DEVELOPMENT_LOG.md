@@ -4,7 +4,7 @@
 > for cross-session continuity, progress tracking, and portfolio documentation.
 >
 > **Last updated:** 2026-05-11
-> **Current stage:** Stage 3 Complete — Ready for Stage 4 (Deploy)
+> **Current stage:** Stage 4 Complete — Ready for Stages 5+6 (Tests + Demos)
 
 ---
 
@@ -104,7 +104,7 @@ Stage 0: Code Analyst ──→ Stage 1: Planner ──┬──→ Stage 2: Bac
 | 1 | Planner | **Complete** | 2026-05-11 | 2026-05-11 | `2ec2cd8`..`d423c17` |
 | 2 | Backend (Core) | **Complete** | 2026-05-11 | 2026-05-11 | `bf66efc`..`eadf250` |
 | 3 | Backend (Client) | **Complete** | 2026-05-11 | 2026-05-11 | `0ce62c1`..`63508e6` |
-| 4 | Deploy | Pending | - | - | - |
+| 4 | Deploy | **Complete** | 2026-05-11 | 2026-05-11 | `cb5e71f`, `bb8080e` |
 | 5 | QA (Tests) | Pending | - | - | - |
 | 6 | Backend (Demos) | Pending | - | - | - |
 | 7 | Docs | Pending | - | - | - |
@@ -264,26 +264,24 @@ Each stage branch gets a PR into `develop` with:
 
 **What happened:**
 1. Explored Project 1 (base legacy code + original planner) and Project 4 (AI Agent Orchestration Framework)
-2. Identified key adaptations needed:
-   - No SQL database (Redis-only) eliminates SQLAlchemy/Alembic from Backend Agent scope
-   - Client library is standalone package — split into dedicated Backend stage
-   - Backend Agent split into 3 stages (Core, Client, Demos)
-   - QA runs twice (Tests + Final Validation)
+2. Identified key adaptations needed (Redis-only, standalone client lib, Backend split into 3 stages)
 3. Created `planner/AGENT_PIPELINE_PLAN.md` with 10 agent stages, full seed prompts, acceptance criteria
-4. Created `DEVELOPMENT_LOG.md` (this file) for cross-session continuity
-5. Designed git commit strategy with branch-per-stage, conventional commits, and tag milestones
+4. Created `DEVELOPMENT_LOG.md` and git commit strategy
+5. Initialized git repo, created GitHub remote (HelioZF/async-task-queue-api)
+6. **Executed Stages 0-4:** Legacy analysis → Domain foundation → Backend core → Client library → Docker deploy
+7. Total: 47 files created, 25 commits, 5 PRs (4 merged + 1 pending)
 
-**Files created:**
-- `planner/AGENT_PIPELINE_PLAN.md` — Full agent pipeline plan with seed prompts
-- `DEVELOPMENT_LOG.md` — This audit/history file
+**Key files created this session:**
+- `planner/AGENT_PIPELINE_PLAN.md` — Agent pipeline plan with seed prompts
+- `DEVELOPMENT_LOG.md` — Audit/history file
+- `src/domain/` — Entities, ports, value objects, exceptions (Stage 1)
+- `src/application/` — DTOs, use cases, mappers (Stages 1-2)
+- `src/adapters/` — API routes, Redis store, file processors (Stage 2)
+- `src/infrastructure/` — Config, Celery, rate limiter, Redis client (Stage 2)
+- `client/` — Standalone multi-threaded client library (Stage 3)
+- `Dockerfile`, `docker-compose.yml`, `Makefile`, `scripts/` (Stage 4)
 
-**Decisions made:**
-- 10-stage pipeline (vs original 7 technical phases)
-- Branch strategy: `main` -> `develop` -> `stage/*` branches
-- Conventional Commits for professional git history
-- Three version tags: v0.1.0 (infra), v0.2.0 (tested), v1.0.0 (portfolio-ready)
-
-**Next session:** Begin Stage 1 (Planner) — define domain layer
+**Next session:** Stages 5+6 (Tests + Demos, can run in parallel), then 7 (Docs), 8 (Validation), 9 (Retro)
 
 ---
 
@@ -514,6 +512,80 @@ da6579d feat(client): add job poller with exponential backoff
 #### Notes for Next Session
 - Stage 4 (Deploy) can now proceed — Docker infrastructure
 - Stages 5 (Tests) and 6 (Demos) depend on Stages 2, 3, and 4
+
+---
+
+### Stage 4 — Deploy (Docker + Infrastructure) | 2026-05-11
+
+**Session:** 1
+**Branch:** `stage/4-deploy`
+**Status:** Complete
+
+#### Prompt Sent
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage 4 seed prompt.
+
+#### Agent Feedback
+Created all Docker and infrastructure files. Stack includes 5 services: Redis (healthchecked), API (port 8000), worker_high (concurrency 4), worker_low (concurrency 2), Flower (port 5555). Dockerfile uses python:3.11-slim with system deps for Pillow/pdfplumber and non-root user.
+
+#### Files Created
+- `Dockerfile` — python:3.11-slim, system deps, non-root user
+- `docker-compose.yml` — 5 services, Redis healthcheck, env vars
+- `.dockerignore` — excludes base/, planner/, docs/, .git, .venv
+- `.env.example` — all TASKQUEUE_ variables with defaults
+- `scripts/start-api.sh` — uvicorn with hot-reload
+- `scripts/start-worker-high.sh` — Celery worker (concurrency=4, jobs_high)
+- `scripts/start-worker-low.sh` — Celery worker (concurrency=2, jobs_low)
+- `Makefile` — up, down, logs, test, lint, format, shell, clean, help
+
+#### Issues Encountered
+- None
+
+#### Acceptance Criteria Results
+- [x] docker-compose defines all 5 services
+- [x] Redis healthcheck gates workers
+- [x] API on port 8000, Flower on port 5555
+- [x] make up, make down, make logs targets defined
+- [x] .env.example contains all TASKQUEUE_ variables
+- [x] No CCEE/Lux references
+- [x] No debug ports, no certificates
+
+#### Commits Made
+```
+cb5e71f ci(docker): add Dockerfile and docker-compose with 5-service stack
+bb8080e ci: add Makefile, shell scripts, and environment template
+```
+
+#### Notes for Next Session
+- Stages 5 (QA Tests) and 6 (Demos) can now run in parallel
+- Both depend on Stages 2, 3, and 4 being complete (they are)
+- Run `docker compose up` to verify the full stack before writing tests
+- The v0.1.0 tag milestone is reached (infrastructure complete, API functional)
+
+---
+
+### Session 1 Summary — 2026-05-11
+
+**Duration:** Single session
+**Stages completed:** 0, 1, 2, 3, 4 (5 of 10)
+**Total files created:** 47
+**Total commits:** 25
+**PRs merged:** 4 (+ 1 pending for Stage 4)
+
+**What was accomplished:**
+- Full planning phase: agent pipeline plan, development log, git strategy
+- GitHub repo created and organized with branch strategy
+- Complete domain layer (entities, ports, DTOs, exceptions)
+- Complete infrastructure + application + API layer
+- Standalone multi-threaded client library (star feature)
+- Docker infrastructure ready for deployment
+
+**What remains (next session):**
+- Stage 5: QA — unit, integration, E2E tests
+- Stage 6: Demos — example scripts + sample files
+- Stage 7: Docs — README, architecture docs, API reference
+- Stage 8: QA final validation
+- Stage 9: Process retrospective
+- Tag v0.1.0 after Stage 4 merge, v1.0.0 after Stage 8
 
 ---
 
