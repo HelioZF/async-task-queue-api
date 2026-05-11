@@ -4,7 +4,7 @@
 > for cross-session continuity, progress tracking, and portfolio documentation.
 >
 > **Last updated:** 2026-05-11
-> **Current stage:** Stage 1 Complete — Ready for Stages 2+3 (Backend Core + Client)
+> **Current stage:** Stage 2 Complete — Ready for Stage 3 (Client Library) + Stage 4 (Deploy)
 
 ---
 
@@ -102,7 +102,7 @@ Stage 0: Code Analyst ──→ Stage 1: Planner ──┬──→ Stage 2: Bac
 |-------|-------|--------|---------|-----------|---------|
 | 0 | Code Analyst | **Complete** | 2026-05-11 | 2026-05-11 | `c73ff38`, `693c789` |
 | 1 | Planner | **Complete** | 2026-05-11 | 2026-05-11 | `2ec2cd8`..`d423c17` |
-| 2 | Backend (Core) | Pending | - | - | - |
+| 2 | Backend (Core) | **Complete** | 2026-05-11 | 2026-05-11 | `bf66efc`..`eadf250` |
 | 3 | Backend (Client) | Pending | - | - | - |
 | 4 | Deploy | Pending | - | - | - |
 | 5 | QA (Tests) | Pending | - | - | - |
@@ -389,6 +389,77 @@ d423c17 docs(planning): add domain model diagram and API contract
 - Stages 2 and 3 can run in parallel (Backend Core + Client Library)
 - Backend Agent must NOT modify any files in src/domain/ or src/application/dtos/
 - Job entity has lifecycle methods — use cases should call these instead of setting fields directly
+
+---
+
+### Stage 2 — Backend (Core Infrastructure + API) | 2026-05-11
+
+**Session:** 1
+**Branch:** `stage/2-backend-core`
+**Status:** Complete
+
+#### Prompt Sent
+See `planner/AGENT_PIPELINE_PLAN.md` — Stage 2 seed prompt.
+
+#### Agent Feedback
+Built the complete infrastructure, adapter, and application layers. All imports verified with Python interpreter. All 4 processors tested with real data (CSV, text, image). FastAPI app creates successfully with 11 routes registered.
+
+Key implementation decisions:
+- Single `process_job` Celery task dispatches to processor registry by job_type
+- RedisJobStore uses JSON hashes with TTL + sorted set for list_recent()
+- Use cases receive IJobStore via constructor (DI), import Celery lazily to avoid circular imports
+- App factory pattern (`create_app()`) for testability
+- Exception middleware maps domain errors to HTTP status codes without coupling
+
+#### Files Created
+- `src/infrastructure/config.py` — Pydantic Settings with TASKQUEUE_ prefix
+- `src/infrastructure/redis_client.py` — Lazy singleton Redis factory (DB 2)
+- `src/infrastructure/celery_app.py` — Celery with jobs_high/jobs_low queues
+- `src/infrastructure/rate_limiter.py` — Sliding window, fail-open
+- `src/infrastructure/celery_tasks.py` — Generic process_job dispatcher
+- `src/adapters/outbound/redis_job_store.py` — IJobStore implementation
+- `src/adapters/outbound/processors/csv_processor.py` — pandas CSV summary
+- `src/adapters/outbound/processors/text_processor.py` — Word frequency
+- `src/adapters/outbound/processors/image_processor.py` — Pillow resize
+- `src/adapters/outbound/processors/pdf_processor.py` — pdfplumber extract
+- `src/adapters/outbound/processors/__init__.py` — PROCESSOR_REGISTRY
+- `src/application/use_cases/submit_job.py` — Creates Job + dispatches
+- `src/application/use_cases/get_job_status.py` — Retrieves from store
+- `src/application/use_cases/cancel_job.py` — Revokes Celery task
+- `src/application/use_cases/list_jobs.py` — Lists recent
+- `src/application/mappers/job_mapper.py` — Entity to DTO mapping
+- `src/adapters/inbound/api/jobs_router.py` — POST/GET/DELETE/GET /jobs
+- `src/adapters/inbound/api/monitoring_router.py` — /health, /queue/stats
+- `src/adapters/inbound/api/middleware.py` — Error handlers
+- `src/main.py` — App factory
+- `pyproject.toml` — All dependencies
+
+#### Issues Encountered
+- None
+
+#### Acceptance Criteria Results
+- [x] All imports resolve (verified with Python interpreter)
+- [x] All 4 processors produce correct output (tested with real data)
+- [x] PROCESSOR_REGISTRY maps all 4 JobTypes
+- [x] FastAPI app creates with 11 routes (/, /docs, /health, /jobs CRUD, /queue/stats, etc.)
+- [x] Use cases depend on IJobStore port, not concrete RedisJobStore
+- [x] No files modified in src/domain/ or src/application/dtos/
+- [x] Rate limiter has fail-open behavior
+
+#### Commits Made
+```
+bf66efc feat(celery): add Celery app config with priority queue routing
+fa63201 feat(redis): add Redis job store and file processor adapters
+7f175b2 feat(api): add use cases and job mapper
+d6aec55 feat(api): add FastAPI routers and error handling middleware
+0ae1099 feat(api): add FastAPI app factory with dependency injection
+eadf250 chore: add pyproject.toml with project dependencies
+```
+
+#### Notes for Next Session
+- Stage 3 (Client Library) and Stage 4 (Deploy) can proceed next
+- Client library is standalone — no imports from src/
+- Deploy needs pyproject.toml and src/main.py for Dockerfile
 
 ---
 
